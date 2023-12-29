@@ -5,11 +5,11 @@ import * as THREE from "three"
 
 export const ImageFadeMaterial = shaderMaterial(
     {
-        effectFactor: 1.2,
-        dispFactor: 0,
+        distortionFactor: 1.2,
+        displacementFactor: 0,
         tex: undefined,
         tex2: undefined,
-        disp: undefined
+        displacement: undefined
     },
     /*glsl*/` 
         varying vec2 vUv;
@@ -21,18 +21,17 @@ export const ImageFadeMaterial = shaderMaterial(
         varying vec2 vUv;
         uniform sampler2D tex;
         uniform sampler2D tex2;
-        uniform sampler2D disp;
-        uniform float _rot;
-        uniform float dispFactor;
-        uniform float effectFactor;
+        uniform sampler2D displacement;
+        uniform float displacementFactor;
+        uniform float distortionFactor;
         void main() {
             vec2 uv = vUv;
-            vec4 disp = texture2D(disp, uv);
-            vec2 distortedPosition = vec2(uv.x, uv.y + dispFactor * (disp.r*effectFactor));
-            vec2 distortedPosition2 = vec2(uv.x, uv.y - (1.0 - dispFactor) * (disp.r*effectFactor));
+            vec4 displacement = texture2D(displacement, uv);
+            vec2 distortedPosition = vec2(uv.x, uv.y + displacementFactor * (displacement.r*distortionFactor));
+            vec2 distortedPosition2 = vec2(uv.x, uv.y - (1.0 - displacementFactor) * (displacement.r*distortionFactor));
             vec4 _texture = texture2D(tex, distortedPosition);
             vec4 _texture2 = texture2D(tex2, distortedPosition2);
-            vec4 finalTexture = mix(_texture, _texture2, dispFactor);
+            vec4 finalTexture = mix(_texture, _texture2, displacementFactor);
             gl_FragColor = finalTexture;
             #include <tonemapping_fragment>
             #include <encodings_fragment>
@@ -51,13 +50,13 @@ export const FadingDisplacement = (props) => {
     const [hovered, setHover] = useState(false)
 
     useFrame(() => {
-        ref.current.dispFactor = THREE.MathUtils.lerp(ref.current.dispFactor, hovered ? 1 : 0, 0.055)
+        ref.current.displacementFactor = THREE.MathUtils.lerp(ref.current.displacementFactor, hovered ? 1 : 0, 0.055)
     })
 
     return (
         <mesh {...props} onPointerOver={(e) => setHover(true)} onPointerOut={(e) => setHover(false)}>
             <planeGeometry args={[2.25, 4]} />
-            <imageFadeMaterial ref={ref} tex={texture1} tex2={texture2} disp={dispTexture} toneMapped={false} />
+            <imageFadeMaterial ref={ref} tex={texture1} tex2={texture2} displacement={dispTexture} toneMapped={false} />
         </mesh>
     )
 }
