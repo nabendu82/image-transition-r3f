@@ -24,6 +24,10 @@ export const ImageFadeMaterial = shaderMaterial(
         uniform sampler2D displacement;
         uniform float displacementFactor;
         uniform float distortionFactor;
+
+        uniform float rgbShiftAmount;
+        uniform vec2 rgbShiftDirection;
+
         void main() {
             vec2 uv = vUv;
             vec4 displacement = texture2D(displacement, uv);
@@ -31,8 +35,14 @@ export const ImageFadeMaterial = shaderMaterial(
             vec2 distortedPosition2 = vec2(uv.x, uv.y - (1.0 - displacementFactor) * (displacement.r*distortionFactor));
             vec4 _texture = texture2D(tex, distortedPosition);
             vec4 _texture2 = texture2D(tex2, distortedPosition2);
-            vec4 finalTexture = mix(_texture, _texture2, displacementFactor);
-            gl_FragColor = finalTexture;
+
+            vec4 mixedTexture = mix(_texture, _texture2, displacementFactor);
+
+            float r = texture2D(tex, uv + rgbShiftDirection * rgbShiftAmount).r;
+            float g = mixedTexture.g;
+            float b = texture2D(tex2, uv - rgbShiftDirection * rgbShiftAmount).b;
+
+            gl_FragColor = vec4(r, g, b, 1.0);
             #include <tonemapping_fragment>
             #include <encodings_fragment>
     }`
@@ -50,13 +60,14 @@ export const FadingDisplacement = (props) => {
     const [hovered, setHover] = useState(false)
 
     useFrame(() => {
-        ref.current.displacementFactor = THREE.MathUtils.lerp(ref.current.displacementFactor, hovered ? 1 : 0, 0.055)
+        ref.current.displacementFactor = THREE.MathUtils.lerp(ref.current.displacementFactor, hovered ? 1 : 0, 0.01)
     })
 
     return (
         <mesh {...props} onPointerOver={(e) => setHover(true)} onPointerOut={(e) => setHover(false)}>
             <planeGeometry args={[2.25, 4]} />
-            <imageFadeMaterial ref={ref} tex={texture1} tex2={texture2} displacement={dispTexture} toneMapped={false} />
+            <imageFadeMaterial     rgbShiftAmount={ 0.0 }
+    rgbShiftDirection={  new THREE.Vector2(1, 0) } ref={ref} tex={texture1} tex2={texture2} displacement={dispTexture} toneMapped={false} />
         </mesh>
     )
 }
